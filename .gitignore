@@ -1,0 +1,52 @@
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Секреты и локальная конфигурация — НИКОГДА не коммитить
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+truststore*
+*.ovpn
+wg*.conf
+*.conf.wg
+amnezia*.conf
+infisical*.json
+secrets/
+*.secret
+id_rsa*
+id_ed25519*
+docker-compose.override.yml
+
+# Инфраструктурные факты (IP, порты, VPN endpoints) — не в Git (AD-12)
+docs/architecture/phase0-connectivity-report.md
+_bmad-output/**/phase0*
+
+# Логи
+*.log
+logs/
+
+# BMAD output (рабочие артефакты сессий) — решается отдельно, пока игнорируем локальные
+_bmad-output/progress/

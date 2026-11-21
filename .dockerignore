@@ -1,0 +1,37 @@
+# Всё, что не нужно для сборки jar — вне Docker build context.
+# Критично: секреты и VCS не должны попадать в слои/кэш образа.
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+amnezia*.conf
+infisical*.json
+
+# BMAD / IDE / docs — не нужны для сборки
+_bmad
+_bmad-output
+.agents
+.opencode
+.claude
+.idea
+.vscode
+*.iml
+docs/
+*.md
+!README.md
+
+# Артефакты сборки
+**/target/
+logs/
+*.log
+
+# Локальные compose-файлы не нужны внутри образа
+docker-compose*.yml
+Makefile

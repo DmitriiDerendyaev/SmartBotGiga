@@ -1,0 +1,58 @@
+# Полный стек SmartBot (DEV/PROD-шаблон).
+# Секреты поступают из Infisical / защищённого .env (не коммитится!).
+# Сетевая маршрутизация Telegram через Amnezia VPN определяется в Phase 0
+# и оформляется отдельным ADR; здесь placeholder-конфигурация не задаётся.
+services:
+  app:
+    image: ghcr.io/dmitriiderendyaev/smartbot:${SMARTBOT_IMAGE_TAG:-latest}
+    build: .
+    environment:
+      SMARTBOT_DB_URL: jdbc:postgresql://postgres:5432/smartbot
+      SMARTBOT_DB_USERNAME: smartbot
+      SMARTBOT_DB_PASSWORD: ${SMARTBOT_DB_PASSWORD:?set in .env or Infisical}
+      # SMARTBOT_TELEGRAM_BOT_TOKEN — инъекция через Infisical (Phase 2)
+      # SMARTBOT_GIGACHAT_AUTH_KEY — инъекция через Infisical (Phase 4)
+    ports:
+      # Только loopback: при Long Polling inbound извне не нужен (AD-23).
+      # Webhook (если будет выбран) — отдельный публичный порт через reverse proxy.
+      - "127.0.0.1:8080:8080"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g # уточняется по Phase B assessment
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:9090/actuator/health/liveness | grep -q UP"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: smartbot
+      POSTGRES_USER: smartbot
+      POSTGRES_PASSWORD: ${SMARTBOT_DB_PASSWORD:?set in .env or Infisical}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartbot -d smartbot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    profiles: ["cache"]
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
