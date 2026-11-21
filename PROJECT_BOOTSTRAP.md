@@ -7,14 +7,22 @@ Architecture → Epics/Stories → Build).
 
 | Фаза | Статус | Комментарий |
 |---|---|---|
-| Phase 0 — Discovery & Infrastructure Assessment | ⏳ не начата | нужны данные VPS/VPN (см. checklist ниже) |
-| Phase 1 — Project Bootstrap | 🔄 в работе | Maven skeleton, Docker, CI, docs |
-| Phase 2 — Telegram Adapter | ⏸ ожидает Phase 0 | VPN-маршрут не проверен |
-| Phase 3 — User & Request Management | ⏸ | |
-| Phase 4 — GigaChat Provider | ⏸ | нужны credentials (Infisical) |
-| Phase 5 — Search Integration | ⏸ | провайдер не выбран |
-| Phase 6 — Async Processing | ⏸ | |
-| Phase 7 — Production Readiness | ⏸ | |
+| Phase 0 — Discovery & Infrastructure Assessment | ⏳ ожидает данные пользователя | Epic 5 gate: VPS/SSH/VPN/bot tokens |
+| Phase 1 — Project Bootstrap | ✅ завершена | BUILD SUCCESS, push main+develop |
+| Phase 2 — Telegram Adapter | 🔄 Epic 1 (локально, WireMock) | реальная верификация — Epic 5 |
+| Phase 3 — User & Request Management | 🔄 Epic 1–2 | |
+| Phase 4 — GigaChat Provider | ⏸ Epic 2 (WireMock до credentials) | |
+| Phase 5 — Search Integration | ⏸ Epic 3 | провайдер не выбран (Phase F) |
+| Phase 6 — Async Processing | ⏸ Epic 1.6 + Epic 2 | |
+| Phase 7 — Production Readiness | ⏸ Epic 4–5 | |
+
+## BMAD артефакты
+
+- Architecture Spine (final): `_bmad-output/planning-artifacts/architecture/architecture-SmartBot-2026-11-20/ARCHITECTURE-SPINE.md`
+  — AD-1…AD-26; 4 независимых ревью (rubric/versions/adversary/security), все фиксы применены; lint 0 findings.
+- PRD (derived из initSpec): `_bmad-output/planning-artifacts/PRD.md` — 25 FR / 14 NFR.
+- Epics & Stories: `_bmad-output/planning-artifacts/epics.md` — 5 epics / 21 stories, валидация пройдена.
+- Reviews: `…/architecture-SmartBot-2026-11-20/reviews/`.
 
 ## Выполнено (Phase 1)
 
@@ -27,9 +35,9 @@ Architecture → Epics/Stories → Build).
 - [x] Makefile: сборка/тесты через Docker (локальный JDK не требуется)
 - [x] GitHub Actions CI: build+test на feature/*/PR; образ в GHCR на develop/release
 - [x] Документация: README, скелет docs/ по §15
-- [ ] Первый commit + push (ожидает проверки сборки)
-- [ ] BMAD Architecture Document
-- [ ] BMAD Epics & Stories
+- [x] Первый commit + push (main + develop; BUILD SUCCESS, ArchUnit 6/6)
+- [x] BMAD Architecture Document (spine final, AD-1…AD-26)
+- [x] BMAD Epics & Stories (5 epics / 21 stories)
 
 ## Решения, зафиксированные на бутстрапе
 
