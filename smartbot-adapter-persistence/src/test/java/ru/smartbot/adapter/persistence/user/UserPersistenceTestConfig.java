@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import ru.smartbot.adapter.persistence.request.AiRequestRepositoryAdapter;
 import ru.smartbot.adapter.persistence.request.ProcessedUpdateRepositoryAdapter;
+import ru.smartbot.adapter.persistence.telegram.PollingOffsetRepositoryAdapter;
 
 /**
  * Минимальный Spring-контекст для IT persistence-адаптеров (без composition root):
@@ -17,6 +18,6 @@ import ru.smartbot.adapter.persistence.request.ProcessedUpdateRepositoryAdapter;
 @EntityScan("ru.smartbot.adapter.persistence")
 @EnableJpaRepositories("ru.smartbot.adapter.persistence")
 @Import({UserRepositoryAdapter.class, AiRequestRepositoryAdapter.class,
-        ProcessedUpdateRepositoryAdapter.class})
+        ProcessedUpdateRepositoryAdapter.class, PollingOffsetRepositoryAdapter.class})
 public class UserPersistenceTestConfig {
 }
