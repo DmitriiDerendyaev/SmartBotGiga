@@ -11,10 +11,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Spring Data репозиторий ai_requests (AD-13…AD-15).
+ * Spring Data репозиторий ai_requests (AD-13…AD-15, AD-19).
  *
- * <p>CAS-переход статуса — один атомарный UPDATE с условием по ожидаемому
- * статусу; проигравший CAS получает 0 строк (AD-15).
+ * <p>Все переходы — атомарные UPDATE с условием по ожидаемому статусу;
+ * проигравший CAS получает 0 строк (AD-15).
  */
 public interface SpringDataAiRequestRepository extends JpaRepository<AiRequestJpaEntity, UUID> {
 
@@ -51,6 +51,61 @@ public interface SpringDataAiRequestRepository extends JpaRepository<AiRequestJp
                AND status IN ('CREATED', 'GENERATING')
             """)
     int attachInlineMessageId(@Param("id") UUID id, @Param("inlineMessageId") String inlineMessageId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE ai_requests
+               SET lease_expires_at = :leaseExpiresAt
+             WHERE id = :id AND status IN ('CREATED', 'GENERATING')
+            """)
+    int renewLease(@Param("id") UUID id, @Param("leaseExpiresAt") Instant leaseExpiresAt);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE ai_requests
+               SET status = 'COMPLETED',
+                   result_text_full = :fullText,
+                   result_text_sent = :sentText,
+                   truncated = :truncated,
+                   delivery_error_code = :deliveryError,
+                   completed_at = :now
+             WHERE id = :id AND status = 'GENERATING'
+            """)
+    int complete(@Param("id") UUID id,
+                 @Param("fullText") String fullText,
+                 @Param("sentText") String sentText,
+                 @Param("truncated") boolean truncated,
+                 @Param("deliveryError") String deliveryError,
+                 @Param("now") Instant now);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE ai_requests SET delivery_error_code = :code WHERE id = :id
+            """)
+    int setDeliveryError(@Param("id") UUID id, @Param("code") String code);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE ai_requests
+               SET status = 'FAILED', error_code = :code, completed_at = :now
+             WHERE id = :id AND status IN ('CREATED', 'GENERATING')
+            """)
+    int fail(@Param("id") UUID id, @Param("code") String code, @Param("now") Instant now);
+
+    @Query("""
+            select r from AiRequestJpaEntity r
+            where r.status = 'GENERATING'
+              and r.leaseExpiresAt is not null
+              and r.leaseExpiresAt < :now
+            """)
+    List<AiRequestJpaEntity> findExpiredLeases(@Param("now") Instant now);
+
+    @Query("""
+            select r from AiRequestJpaEntity r
+            where r.status in ('CREATED', 'GENERATING')
+              and r.createdAt < :threshold
+            """)
+    List<AiRequestJpaEntity> findActiveCreatedBefore(@Param("threshold") Instant threshold);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(nativeQuery = true, value = """

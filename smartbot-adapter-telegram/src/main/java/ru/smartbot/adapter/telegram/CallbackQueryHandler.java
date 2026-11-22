@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import ru.smartbot.adapter.telegram.model.TelegramUpdate;
 import ru.smartbot.application.api.error.SafeErrorMessages;
+import ru.smartbot.application.api.request.GenerateAnswerUseCase;
 import ru.smartbot.application.api.request.HandleCallbackUseCase;
 import ru.smartbot.application.api.user.TelegramPrincipal;
 import ru.smartbot.domain.error.DomainException;
@@ -25,10 +26,14 @@ public class CallbackQueryHandler {
     private static final Logger log = LoggerFactory.getLogger(CallbackQueryHandler.class);
 
     private final HandleCallbackUseCase handleCallback;
+    private final GenerateAnswerUseCase generateAnswer;
     private final TelegramApiClient api;
 
-    public CallbackQueryHandler(HandleCallbackUseCase handleCallback, TelegramApiClient api) {
+    public CallbackQueryHandler(HandleCallbackUseCase handleCallback,
+                                GenerateAnswerUseCase generateAnswer,
+                                TelegramApiClient api) {
         this.handleCallback = Objects.requireNonNull(handleCallback, "handleCallback");
+        this.generateAnswer = Objects.requireNonNull(generateAnswer, "generateAnswer");
         this.api = Objects.requireNonNull(api, "api");
     }
 
@@ -48,6 +53,11 @@ public class CallbackQueryHandler {
             }
             // Немедленный ack (AD-8): без текста, без alert
             api.answerCallbackQuery(callback.id(), null);
+
+            // Асинхронная генерация (AD-8/15): один in-flight исполнитель на запрос
+            if (result.requestId() != null) {
+                generateAnswer.start(result.requestId());
+            }
         } catch (DomainException e) {
             log.debug("callback update_id={} отклонён: {}", update.updateId(), e.getCode());
             api.answerCallbackQuery(callback.id(), SafeErrorMessages.messageFor(e.getCode()));

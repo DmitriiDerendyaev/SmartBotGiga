@@ -3,6 +3,7 @@ package ru.smartbot.adapter.telegram;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import ru.smartbot.adapter.telegram.model.TelegramUpdate;
+import ru.smartbot.application.api.request.GenerateAnswerUseCase;
 import ru.smartbot.application.api.request.HandleCallbackUseCase;
 import ru.smartbot.domain.error.DomainException;
 import ru.smartbot.domain.error.ErrorCode;
@@ -22,8 +23,9 @@ import static org.mockito.Mockito.when;
 class CallbackQueryHandlerTest {
 
     private final HandleCallbackUseCase useCase = mock(HandleCallbackUseCase.class);
+    private final GenerateAnswerUseCase generateAnswer = mock(GenerateAnswerUseCase.class);
     private final TelegramApiClient api = mock(TelegramApiClient.class);
-    private final CallbackQueryHandler handler = new CallbackQueryHandler(useCase, api);
+    private final CallbackQueryHandler handler = new CallbackQueryHandler(useCase, generateAnswer, api);
 
     @Test
     @DisplayName("валидный callback: answerCallbackQuery отправлен")
@@ -34,6 +36,7 @@ class CallbackQueryHandlerTest {
         handler.handle(update("g:token", "im-1"));
 
         verify(api).answerCallbackQuery("cb-1", null);
+        verify(generateAnswer).start(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

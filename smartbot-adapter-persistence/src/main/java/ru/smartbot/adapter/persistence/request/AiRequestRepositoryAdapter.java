@@ -90,6 +90,46 @@ public class AiRequestRepositoryAdapter implements AiRequestRepository {
 
     @Override
     @Transactional
+    public void renewLease(UUID id, Instant leaseExpiresAt) {
+        repository.renewLease(id, leaseExpiresAt);
+    }
+
+    @Override
+    @Transactional
+    public boolean complete(UUID id, String fullText, String sentText, boolean truncated,
+                            ErrorCode deliveryError, Instant now) {
+        String code = deliveryError == null ? null : deliveryError.name();
+        return repository.complete(id, fullText, sentText, truncated, code, now) == 1;
+    }
+
+    @Override
+    @Transactional
+    public void setDeliveryError(UUID id, ErrorCode code) {
+        repository.setDeliveryError(id, code.name());
+    }
+
+    @Override
+    @Transactional
+    public boolean fail(UUID id, ErrorCode code, Instant now) {
+        return repository.fail(id, code.name(), now) == 1;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AiRequest> findExpiredLeases(Instant now) {
+        return repository.findExpiredLeases(now).stream()
+                .map(AiRequestRepositoryAdapter::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AiRequest> findActiveCreatedBefore(Instant threshold) {
+        return repository.findActiveCreatedBefore(threshold).stream()
+                .map(AiRequestRepositoryAdapter::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
     public boolean transition(UUID id, AiRequestStatus expected, AiRequestStatus target, Instant now) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(expected, "expected");
