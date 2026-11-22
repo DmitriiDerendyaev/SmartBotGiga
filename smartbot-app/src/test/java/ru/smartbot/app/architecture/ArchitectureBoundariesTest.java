@@ -10,6 +10,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import static com.tngtech.archunit.core.domain.JavaCall.Predicates.target;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.assignableTo;
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameMatching;
+import static com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
@@ -106,6 +110,27 @@ class ArchitectureBoundariesTest {
                                     }));
             rule.check(classes);
         }
+    }
+
+    /**
+     * Страж user-facing пути (AD-20): адаптер не рендерит сырые детали исключения —
+     * ни getMessage(), ни getLocalizedMessage(), ни toString(), ни printStackTrace()
+     * на Throwable-assignable owner'ах. Наружу — только ErrorCode + SafeErrorMessages.
+     *
+     * <p>Известные ограничения: {@code String.valueOf(e)} и конкатенация строк
+     * ({@code "..." + e}) идут через invokedynamic (StringConcatFactory) и данным
+     * правилом не ловятся; проверка port-shape (адаптер возвращает наружу только
+     * доменные типы) отложена до появления user-facing контрактов.
+     */
+    @Test
+    @DisplayName("Адаптеры не вызывают getMessage()/getLocalizedMessage()/toString()/printStackTrace() на Throwable: user-facing путь только через ErrorCode (AD-20)")
+    void adaptersNeverCallGetMessage() {
+        ArchRule rule = noClasses().that().resideInAPackage("ru.smartbot.adapter..")
+                .should().callMethodWhere(
+                        target(owner(assignableTo(Throwable.class)))
+                                .and(target(nameMatching(
+                                        "getMessage|getLocalizedMessage|toString|printStackTrace"))));
+        rule.check(classes);
     }
 
     @Test
