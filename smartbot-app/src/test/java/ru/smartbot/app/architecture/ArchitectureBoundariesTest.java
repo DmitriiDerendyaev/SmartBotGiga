@@ -99,17 +99,27 @@ class ArchitectureBoundariesTest {
                                     "другой адаптер, application-impl, infrastructure или app",
                                     (JavaClass javaClass) -> {
                                         String name = javaClass.getPackageName();
+                                        String ownAdapter = "ru.smartbot.adapter." + adapter;
                                         if (!name.startsWith("ru.smartbot.")
-                                                || name.startsWith("ru.smartbot.adapter." + adapter)) {
+                                                || name.equals(ownAdapter)
+                                                || name.startsWith(ownAdapter + ".")) {
                                             return false; // свой пакет адаптера разрешён
                                         }
                                         return name.startsWith("ru.smartbot.adapter.")
-                                                || name.startsWith("ru.smartbot.application.impl")
-                                                || name.startsWith("ru.smartbot.infrastructure")
-                                                || name.startsWith("ru.smartbot.app");
+                                                || inPackage(name, "ru.smartbot.application.impl")
+                                                || inPackage(name, "ru.smartbot.infrastructure")
+                                                || inPackage(name, "ru.smartbot.app");
                                     }));
             rule.check(classes);
         }
+    }
+
+    /**
+     * Точная проверка пакета: сам пакет или его подпакеты (без ложных префиксов
+     * вида "ru.smartbot.app" → "ru.smartbot.application").
+     */
+    private static boolean inPackage(String packageName, String prefix) {
+        return packageName.equals(prefix) || packageName.startsWith(prefix + ".");
     }
 
     /**

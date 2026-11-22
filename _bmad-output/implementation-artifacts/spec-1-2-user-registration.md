@@ -2,8 +2,9 @@
 title: 'Story 1.2 — Распознавание и автоматическая регистрация пользователя'
 type: 'feature'
 created: '2026-11-22'
-status: 'draft'
+status: 'done'
 review_loop_iteration: 0
+baseline_commit: '83e384e07b90de9c045733bb5822555658cd27ff'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-1-context.md'
 ---
@@ -50,13 +51,13 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `V2__users.sql` -- users + user_settings по ER: UUID PK, telegram_user_id BIGINT unique, status, history_enabled default false, индексы/FK -- AD-9/17/26
-- [ ] `smartbot-domain/.../user/*.java` -- User, UserSettings, UserStatus (active/blocked) -- чистое ядро
-- [ ] `smartbot-application-api/.../user/*.java` -- TelegramPrincipal record, UserRepository порт (getOrCreate, findById…), EnsureUserUseCase контракт -- adapter передаёт principal
-- [ ] `smartbot-application-impl/.../user/EnsureUserService.java` -- атомарный get-or-create через порт; blocked-признак в результате -- единственный владелец
-- [ ] `smartbot-adapter-persistence/.../user/*.java` -- JPA-сущности + native upsert (ON CONFLICT DO UPDATE только profile/last_seen_at) + адаптер порта -- маппинг вне domain
-- [ ] `smartbot-adapter-persistence/src/test/.../UserRepositoryAdapterIT.java` -- Testcontainers PostgreSQL: все строки I/O-матрицы, включая concurrency-тест (2 потока, один telegram_user_id) -- regression
-- [ ] `smartbot-application-impl/src/test/.../EnsureUserServiceTest.java` -- unit с mock-портом: blocked не разблокируется, профиль обновляется -- без Spring-контекста
+- [x] `V2__users.sql` -- users + user_settings по ER: UUID PK, telegram_user_id BIGINT unique, status, history_enabled default false, индексы/FK -- AD-9/17/26
+- [x] `smartbot-domain/.../user/*.java` -- User, UserSettings, UserStatus (active/blocked) -- чистое ядро
+- [x] `smartbot-application-api/.../user/*.java` -- TelegramPrincipal record, UserRepository порт (getOrCreate, findById…), EnsureUserUseCase контракт -- adapter передаёт principal
+- [x] `smartbot-application-impl/.../user/EnsureUserService.java` -- атомарный get-or-create через порт; blocked-признак в результате -- единственный владелец
+- [x] `smartbot-adapter-persistence/.../user/*.java` -- JPA-сущности + native upsert (ON CONFLICT DO UPDATE только profile/last_seen_at) + адаптер порта -- маппинг вне domain
+- [x] `smartbot-adapter-persistence/src/test/.../UserRepositoryAdapterIT.java` -- Testcontainers PostgreSQL: все строки I/O-матрицы, включая concurrency-тест (2 потока, один telegram_user_id) -- regression
+- [x] `smartbot-application-impl/src/test/.../EnsureUserServiceTest.java` -- unit с mock-портом: blocked не разблокируется, профиль обновляется -- без Spring-контекста
 
 **Acceptance Criteria:**
 - Given первый update, when EnsureUserUseCase, then User+UserSettings созданы, history_enabled=false
@@ -70,3 +71,50 @@ context:
 
 **Commands:**
 - `make verify` -- expected: BUILD SUCCESS; IT с Testcontainers PostgreSQL зелёные (docker.sock проброшен в Makefile); concurrency-тест проходит
+
+## Verification Results
+
+- `make verify` → BUILD SUCCESS. persistence IT 6/6 (Testcontainers PostgreSQL 17),
+  application-impl unit 5/5, app smoke IT 1/1 (composition root + Flyway + реальные порты).
+- Inline-review (subagents недоступны из-за лимита модели) выявил и закрыл:
+  1) HIGH: composition root не сканировал entities/repositories вне `ru.smartbot.app`
+     → добавлены `@EntityScan("ru.smartbot")` / `@EnableJpaRepositories("ru.smartbot")`
+     и smoke-IT, который это ловит;
+  2) build: `spring-boot:repackage` заменял основной jar жирным, из-за чего failsafe
+     терял `target/classes` и component scan не видел бины → fat jar переведён на
+     `classifier=exec` (Dockerfile обновлён);
+  3) Boot 4: `@SpringBootApplication` больше не несёт `@SpringBootConfiguration`,
+     `@EntityScan` переехал в `spring-boot.persistence.autoconfigure`,
+     Flyway-autoconfiguration — отдельный артефакт `spring-boot-flyway`;
+  4) ArchUnit: ложное срабатывание `ru.smartbot.app` ⊂ `ru.smartbot.application`
+     → точная проверка пакета.
+
+## Suggested Review Order
+
+**Миграция и домен**
+
+- V2: users/user_settings, unique telegram_user_id, history_enabled=false
+  [`V2__users.sql:1`](../../smartbot-adapter-persistence/src/main/resources/db/migration/V2__users.sql#L1)
+- Неизменяемая доменная модель пользователя
+  [`User.java:18`](../../smartbot-domain/src/main/java/ru/smartbot/domain/user/User.java#L18)
+
+**Порт и владелец**
+
+- Контракт get-or-create (адаптер не регистрирует сам)
+  [`UserRepository.java:20`](../../smartbot-application-api/src/main/java/ru/smartbot/application/api/user/UserRepository.java#L20)
+- Единственный владелец User в impl
+  [`EnsureUserService.java:28`](../../smartbot-application-impl/src/main/java/ru/smartbot/application/impl/user/EnsureUserService.java#L28)
+
+**Атомарность в БД**
+
+- Native upsert: только profile/last_seen_at, xmax=0 → created
+  [`SpringDataUserRepository.java:38`](../../smartbot-adapter-persistence/src/main/java/ru/smartbot/adapter/persistence/user/SpringDataUserRepository.java#L38)
+- Маппинг domain↔JPA и транзакция
+  [`UserRepositoryAdapter.java:29`](../../smartbot-adapter-persistence/src/main/java/ru/smartbot/adapter/persistence/user/UserRepositoryAdapter.java#L29)
+
+**Периферия**
+
+- Testcontainers IT: гонка регистрации, blocked, неприкосновенность настроек
+  [`UserRepositoryAdapterIT.java:40`](../../smartbot-adapter-persistence/src/test/java/ru/smartbot/adapter/persistence/user/UserRepositoryAdapterIT.java#L40)
+- Composition root: entity/repo scan + smoke IT
+  [`SmartBotApplication.java:22`](../../smartbot-app/src/main/java/ru/smartbot/app/SmartBotApplication.java#L22)
