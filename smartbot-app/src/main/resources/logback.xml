@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Маскирование секретов во всех appender'ах (AD-4, Story 1.1).
+  Этот конфиг покрывает pre-Spring окно: logback инициализируется по logback.xml
+  ещё до старта Spring Boot (ранние логи самого запуска). Содержимое ОБЯЗАНО
+  совпадать с logback-spring.xml (conversionRules + masked-pattern);
+  расхождение ловит LogbackConfigGuardTest, wiring — LogbackMaskingWiringTest.
+  %maskedMsg — сообщение, %maskedEx — stacktrace, %mdc/%X — MDC
+  (встроенные MDC-конвертеры переопределены masking-версией).
+  Любой новый appender ОБЯЗАН использовать эти конвертеры;
+  сырые %msg / %ex / %throwable / %exception запрещены.
+-->
+<configuration>
+  <conversionRule conversionWord="maskedMsg" class="ru.smartbot.infrastructure.logging.SecretMaskingConverter"/>
+  <conversionRule conversionWord="maskedEx" class="ru.smartbot.infrastructure.logging.MaskingThrowableProxyConverter"/>
+  <conversionRule conversionWord="mdc" class="ru.smartbot.infrastructure.logging.MaskingMdcConverter"/>
+  <conversionRule conversionWord="X" class="ru.smartbot.infrastructure.logging.MaskingMdcConverter"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <charset>UTF-8</charset>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %maskedMsg %mdc%n%maskedEx</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>

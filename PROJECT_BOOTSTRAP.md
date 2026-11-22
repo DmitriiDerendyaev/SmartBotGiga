@@ -9,12 +9,20 @@ Architecture → Epics/Stories → Build).
 |---|---|---|
 | Phase 0 — Discovery & Infrastructure Assessment | ⏳ ожидает данные пользователя | Epic 5 gate: VPS/SSH/VPN/bot tokens |
 | Phase 1 — Project Bootstrap | ✅ завершена | BUILD SUCCESS, push main+develop |
-| Phase 2 — Telegram Adapter | 🔄 Epic 1 (локально, WireMock) | реальная верификация — Epic 5 |
-| Phase 3 — User & Request Management | 🔄 Epic 1–2 | |
-| Phase 4 — GigaChat Provider | ⏸ Epic 2 (WireMock до credentials) | |
+| Phase 2 — Telegram Adapter | ✅ Epic 1 (локально, WireMock) | реальная верификация — Epic 5 |
+| Phase 3 — User & Request Management | ✅ Epic 1 | регистрация, AiRequest, ledger, state machine |
+| Phase 4 — GigaChat Provider | 🔄 Epic 2 (WireMock до credentials) | |
 | Phase 5 — Search Integration | ⏸ Epic 3 | провайдер не выбран (Phase F) |
-| Phase 6 — Async Processing | ⏸ Epic 1.6 + Epic 2 | |
+| Phase 6 — Async Processing | ✅ Epic 1.6 (mock) | реальный LLM — Epic 2 |
 | Phase 7 — Production Readiness | ⏸ Epic 4–5 | |
+
+## Epic 1 — завершён (feature/epic-1-inline-response)
+
+6 stories, 172 теста (`make verify` BUILD SUCCESS): ErrorCode/redaction, авторегистрация,
+inline-корреляция + ledger + state machine с CAS, polling + мгновенный результат,
+валидация callback (TTL/владелец/partial unique), mock-генерация с lease/recovery
+и editMessageText. Всё локально (WireMock/Testcontainers); реальные Telegram/GigaChat —
+Epic 5 после Phase 0.
 
 ## BMAD артефакты
 

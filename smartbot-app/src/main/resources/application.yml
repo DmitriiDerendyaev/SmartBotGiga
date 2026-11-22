@@ -46,7 +46,10 @@ management:
 # Они поступают из Infisical / защищённых переменных окружения (Phase 4, 7).
 smartbot:
   telegram:
-    enabled: false # включается в Phase 2 после проверки VPN-маршрута
+    polling-enabled: false # включается после проверки VPN-маршрута (Epic 5)
+    poll-timeout-seconds: 25
+    # bot-token — только из env/Infisical: SMARTBOT_TELEGRAM_BOT_TOKEN
+    bot-token: ${SMARTBOT_TELEGRAM_BOT_TOKEN:}
   llm:
     provider: gigachat
   search:

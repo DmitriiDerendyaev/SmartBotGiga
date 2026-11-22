@@ -37,7 +37,7 @@ WORKDIR /app
 RUN groupadd --system smartbot && useradd --system --gid smartbot smartbot \
     && apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
-COPY --from=build /workspace/smartbot-app/target/smartbot.jar app.jar
+COPY --from=build /workspace/smartbot-app/target/smartbot-exec.jar app.jar
 
 # ВАЖНО (Phase 0/7): корневой сертификат Минцифры РФ для TLS к GigaChat
 # добавляется в truststore на этапе подготовки образа/хоста после проверки
