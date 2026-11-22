@@ -1,5 +1,9 @@
 package ru.smartbot.adapter.persistence.request;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import ru.smartbot.application.api.request.AiRequestRepository;
@@ -21,9 +25,15 @@ import java.util.UUID;
 public class AiRequestRepositoryAdapter implements AiRequestRepository {
 
     private final SpringDataAiRequestRepository repository;
+    private final TransactionTemplate requiresNew;
 
-    public AiRequestRepositoryAdapter(SpringDataAiRequestRepository repository) {
+    public AiRequestRepositoryAdapter(SpringDataAiRequestRepository repository,
+                                      PlatformTransactionManager transactionManager) {
         this.repository = Objects.requireNonNull(repository, "repository");
+        this.requiresNew = new TransactionTemplate(
+                Objects.requireNonNull(transactionManager, "transactionManager"));
+        // Конфликт partial unique не должен помечать rollback-only внешнюю транзакцию.
+        this.requiresNew.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
     @Override
@@ -53,6 +63,29 @@ public class AiRequestRepositoryAdapter implements AiRequestRepository {
                                                         Instant createdAfter) {
         List<AiRequestJpaEntity> rows = repository.findReusable(userId, queryText, createdAfter);
         return rows.isEmpty() ? Optional.empty() : Optional.of(toDomain(rows.get(0)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<AiRequest> findActiveByInlineMessageId(String inlineMessageId) {
+        List<AiRequestJpaEntity> rows = repository.findActiveByInlineMessageId(inlineMessageId);
+        return rows.isEmpty() ? Optional.empty() : Optional.of(toDomain(rows.get(0)));
+    }
+
+    @Override
+    public boolean attachInlineMessageId(UUID id, String inlineMessageId) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(inlineMessageId, "inlineMessageId");
+        Boolean attached = requiresNew.execute(status -> {
+            try {
+                return repository.attachInlineMessageId(id, inlineMessageId) == 1;
+            } catch (DataIntegrityViolationException e) {
+                // partial unique: сообщение уже занято другим активным запросом (AD-14)
+                status.setRollbackOnly();
+                return false;
+            }
+        });
+        return Boolean.TRUE.equals(attached);
     }
 
     @Override

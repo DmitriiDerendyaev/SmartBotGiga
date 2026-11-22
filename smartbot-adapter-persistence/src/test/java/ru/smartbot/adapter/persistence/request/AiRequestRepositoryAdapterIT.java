@@ -132,6 +132,18 @@ class AiRequestRepositoryAdapterIT {
     }
 
     @Test
+    @DisplayName("attachInlineMessageId: конфликт с активным запросом → false (AD-14)")
+    void attachConflictsWithActiveRequest() {
+        UUID userId = user(900_000_106L);
+        String inlineMessageId = "im-" + UUID.randomUUID();
+        aiRequests.create(request(userId, "g:" + hex(), "First", inlineMessageId));
+        AiRequest second = aiRequests.create(request(userId, "g:" + hex(), "Second"));
+
+        assertThat(aiRequests.attachInlineMessageId(second.id(), inlineMessageId)).isFalse();
+        assertThat(aiRequests.findActiveByInlineMessageId(inlineMessageId)).isPresent();
+    }
+
+    @Test
     @DisplayName("ledger: дубль update_id гасится, новый — пишется")
     void ledgerIdempotency() {
         long updateId = System.nanoTime();

@@ -16,18 +16,26 @@ import java.time.Duration;
 public class SmartBotRequestProperties {
 
     private final Duration correlationTtl;
+    private final Duration callbackTtl;
     private final int maxQueryLength;
 
     public SmartBotRequestProperties(
             @Value("${smartbot.correlation.ttl:PT10M}") String correlationTtl,
+            @Value("${smartbot.callback.ttl:PT1H}") String callbackTtl,
             @Value("${smartbot.limits.max-query-length:256}") int maxQueryLength) {
         this.correlationTtl = Duration.parse(correlationTtl);
+        this.callbackTtl = Duration.parse(callbackTtl);
         this.maxQueryLength = maxQueryLength;
     }
 
     /** Окно переиспользования записи корреляции (AD-13). */
     public Duration getCorrelationTtl() {
         return correlationTtl;
+    }
+
+    /** TTL кнопки после публикации: просроченный callback → EXPIRED (AD-15). */
+    public Duration getCallbackTtl() {
+        return callbackTtl;
     }
 
     /** Дополнительный cap query до LLM (AD-19). */

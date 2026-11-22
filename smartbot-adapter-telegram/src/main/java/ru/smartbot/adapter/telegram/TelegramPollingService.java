@@ -24,6 +24,7 @@ public class TelegramPollingService implements SmartLifecycle {
 
     private final TelegramApiClient api;
     private final InlineQueryHandler inlineQueryHandler;
+    private final CallbackQueryHandler callbackQueryHandler;
     private final PollingOffsetRepository offsets;
     private final TelegramProperties properties;
 
@@ -32,10 +33,12 @@ public class TelegramPollingService implements SmartLifecycle {
 
     public TelegramPollingService(TelegramApiClient api,
                                   InlineQueryHandler inlineQueryHandler,
+                                  CallbackQueryHandler callbackQueryHandler,
                                   PollingOffsetRepository offsets,
                                   TelegramProperties properties) {
         this.api = api;
         this.inlineQueryHandler = inlineQueryHandler;
+        this.callbackQueryHandler = callbackQueryHandler;
         this.offsets = offsets;
         this.properties = properties;
     }
@@ -105,7 +108,9 @@ public class TelegramPollingService implements SmartLifecycle {
             if (update.inlineQuery() != null) {
                 inlineQueryHandler.handle(update);
             }
-            // callback_query обрабатывается в story 1.5
+            if (update.callbackQuery() != null) {
+                callbackQueryHandler.handle(update);
+            }
         } catch (RuntimeException e) {
             // Ledger уже мог записать update; повторная доставка не создаст дубль.
             log.warn("update_id={} завершился ошибкой {}",

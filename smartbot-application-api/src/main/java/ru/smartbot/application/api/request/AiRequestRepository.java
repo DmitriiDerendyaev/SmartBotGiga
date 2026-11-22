@@ -31,6 +31,17 @@ public interface AiRequestRepository {
      */
     Optional<AiRequest> findActiveByUserAndQuery(UUID userId, String queryText, Instant createdAfter);
 
+    /** Активный запрос по опубликованному сообщению (бизнес-unique, AD-14). */
+    Optional<AiRequest> findActiveByInlineMessageId(String inlineMessageId);
+
+    /**
+     * Привязать inline_message_id к активному запросу (первый callback).
+     *
+     * @return true — привязано; false — уже занято другим активным запросом
+     *         (partial unique) или статус неактивен
+     */
+    boolean attachInlineMessageId(UUID id, String inlineMessageId);
+
     /**
      * Атомарный CAS-переход статуса.
      *

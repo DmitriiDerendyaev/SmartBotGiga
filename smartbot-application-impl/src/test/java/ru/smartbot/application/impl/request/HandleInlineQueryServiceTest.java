@@ -37,7 +37,7 @@ class HandleInlineQueryServiceTest {
     private final EnsureUserUseCase ensureUser = mock(EnsureUserUseCase.class);
     private final AiRequestRepository aiRequests = mock(AiRequestRepository.class);
     private final CorrelationTokenGenerator tokens = mock(CorrelationTokenGenerator.class);
-    private final SmartBotRequestProperties properties = new SmartBotRequestProperties("PT10M", 256);
+    private final SmartBotRequestProperties properties = new SmartBotRequestProperties("PT10M", "PT1H", 256);
 
     private HandleInlineQueryService service;
 

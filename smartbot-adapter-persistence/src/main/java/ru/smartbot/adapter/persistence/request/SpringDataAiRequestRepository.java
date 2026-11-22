@@ -33,6 +33,25 @@ public interface SpringDataAiRequestRepository extends JpaRepository<AiRequestJp
                                           @Param("queryText") String queryText,
                                           @Param("createdAfter") Instant createdAfter);
 
+    @Query("""
+            select r from AiRequestJpaEntity r
+            where r.inlineMessageId = :inlineMessageId
+              and r.status in ('CREATED', 'GENERATING')
+            order by r.createdAt desc
+            limit 1
+            """)
+    List<AiRequestJpaEntity> findActiveByInlineMessageId(@Param("inlineMessageId") String inlineMessageId);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query(nativeQuery = true, value = """
+            UPDATE ai_requests
+               SET inline_message_id = :inlineMessageId
+             WHERE id = :id
+               AND inline_message_id IS NULL
+               AND status IN ('CREATED', 'GENERATING')
+            """)
+    int attachInlineMessageId(@Param("id") UUID id, @Param("inlineMessageId") String inlineMessageId);
+
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query(nativeQuery = true, value = """
             UPDATE ai_requests
